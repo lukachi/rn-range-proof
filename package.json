@@ -1,5 +1,5 @@
 {
-  "name": "range-proof",
+  "name": "@lukachi/rn-range-proof",
   "version": "0.1.0",
   "description": "Range Proof calculator",
   "main": "build/index.js",
