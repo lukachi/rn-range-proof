@@ -153,6 +153,8 @@ const styles = {
     flex: 1,
     gap: 16,
     backgroundColor: "#eee",
+    alignItems: "center",
+    justifyContent: "center",
   },
   view: {
     flex: 1,
