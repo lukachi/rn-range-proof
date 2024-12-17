@@ -112,7 +112,16 @@ export default function App() {
   const [proof, setProof] = useState<Uint8Array[]>();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+      ]}
+    >
       <Pressable
         onPress={async () => {
           const generated = await generate();
@@ -153,8 +162,6 @@ const styles = {
     flex: 1,
     gap: 16,
     backgroundColor: "#eee",
-    alignItems: "center",
-    justifyContent: "center",
   },
   view: {
     flex: 1,
