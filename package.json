@@ -23,13 +23,13 @@
     "range-proof",
     "RangeProof"
   ],
-  "repository": "https://github.com/lukachi/range-proof",
+  "repository": "https://github.com/lukachi/rn-range-proof",
   "bugs": {
-    "url": "https://github.com/lukachi/range-proof/issues"
+    "url": "https://github.com/lukachi/rn-range-proof/issues"
   },
   "author": "lukachi <lukachisama@gmail.com> (https://github.com/lukachi)",
   "license": "MIT",
-  "homepage": "https://github.com/lukachi/range-proof#readme",
+  "homepage": "https://github.com/lukachi/rn-range-proof#readme",
   "dependencies": {
     "expo": "~52.0.19",
     "react": "18.3.1",
