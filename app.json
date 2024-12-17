@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.lukachi.rangeproof"
+  },
+  "ios": {
+    "bundleIdentifier": "com.lukachi.rangeproof"
+  }
+}
