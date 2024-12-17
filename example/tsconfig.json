@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "range-proof": ["../src/index"],
+      "range-proof/*": ["../src/*"]
+    }
+  }
+}
