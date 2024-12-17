@@ -45,5 +45,8 @@
     "expo": "*",
     "react": "*",
     "react-native": "*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
