@@ -1,5 +1,4 @@
 import { Buffer } from "buffer";
-import { Platform } from "react-native";
 
 import RangeProofModule from "./RangeProofModule";
 
@@ -21,13 +20,14 @@ export async function genRangeProof(opts: {
     opts.bits || 32,
   );
 
-  if (Platform.OS === "ios") {
-    const jsonStringified = Buffer.from(result).toString();
+  const jsonStringified = Buffer.from(result).toString();
 
-    return JSON.parse(jsonStringified);
-  }
+  const response = JSON.parse(jsonStringified);
 
-  return result;
+  return {
+    proof: new Uint8Array(response.proof),
+    commitment: new Uint8Array(response.commitment),
+  };
 }
 
 export async function verifyRangeProof(opts: {
@@ -43,5 +43,49 @@ export async function verifyRangeProof(opts: {
     new Uint8Array(opts.valBase),
     new Uint8Array(opts.randBase),
     opts.bits || 32,
+  );
+}
+
+export async function genBatchRangeProof(opts: {
+  vs: bigint[];
+  rs: Uint8Array<ArrayBuffer>[];
+  valBase: Uint8Array<ArrayBuffer>;
+  randBase: Uint8Array<ArrayBuffer>;
+  bits: number;
+}): Promise<{
+  proof: Uint8Array;
+  commitments: Uint8Array[];
+}> {
+  const result = await RangeProofModule.genBatchRangeProof(
+    opts.vs.map((v) => +v.toString()),
+    opts.rs.map((r) => new Uint8Array(r)),
+    new Uint8Array(opts.valBase),
+    new Uint8Array(opts.randBase),
+    opts.bits,
+  );
+
+  const jsonStringified = Buffer.from(result).toString();
+
+  const response = JSON.parse(jsonStringified);
+
+  return {
+    proof: new Uint8Array(response.proof),
+    commitments: response.commitments.map((el) => new Uint8Array(el)),
+  };
+}
+
+export async function verifyBatchRangeProof(opts: {
+  proof: Uint8Array;
+  comms: Uint8Array[];
+  valBase: Uint8Array;
+  randBase: Uint8Array;
+  numBits: number;
+}): Promise<boolean> {
+  return await RangeProofModule.verifyBatchRangeProof(
+    new Uint8Array(opts.proof),
+    opts.comms.map((el) => new Uint8Array(el)),
+    new Uint8Array(opts.valBase),
+    new Uint8Array(opts.randBase),
+    opts.numBits,
   );
 }

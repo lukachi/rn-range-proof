@@ -17,6 +17,8 @@ package expo.modules.rangeproof
 // compile the Rust component. The easiest way to ensure this is to bundle the Kotlin
 // helpers directly inline like we're doing here.
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.google.mlkit.common.sdkinternal.Cleaner
 import com.sun.jna.Library
 import com.sun.jna.Native
@@ -66,7 +68,7 @@ open class RustBuffer : Structure() {
         internal fun alloc(size: ULong = 0UL) =
             uniffiRustCall { status ->
                 // Note: need to convert the size to a `Long` value to make this work with JVM.
-                UniffiLib.INSTANCE.ffi_aptos_wasm_bindings_rustbuffer_alloc(size.toLong(), status)
+                UniffiLib.INSTANCE.ffi_aptos_rp_mobile_rustbuffer_alloc(size.toLong(), status)
             }.also {
                 if (it.data == null) {
                     throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=$size)")
@@ -77,17 +79,17 @@ open class RustBuffer : Structure() {
             capacity: ULong,
             len: ULong,
             data: Pointer?,
-        ): ByValue {
-            var buf = ByValue()
+        ): RustBuffer.ByValue {
+            var buf = RustBuffer.ByValue()
             buf.capacity = capacity.toLong()
             buf.len = len.toLong()
             buf.data = data
             return buf
         }
 
-        internal fun free(buf: ByValue) =
+        internal fun free(buf: RustBuffer.ByValue) =
             uniffiRustCall { status ->
-                UniffiLib.INSTANCE.ffi_aptos_wasm_bindings_rustbuffer_free(buf, status)
+                UniffiLib.INSTANCE.ffi_aptos_rp_mobile_rustbuffer_free(buf, status)
             }
     }
 
@@ -260,8 +262,8 @@ internal open class UniffiRustCallStatus : Structure() {
         fun create(
             code: Byte,
             errorBuf: RustBuffer.ByValue,
-        ): ByValue {
-            val callStatus = ByValue()
+        ): UniffiRustCallStatus.ByValue {
+            val callStatus = UniffiRustCallStatus.ByValue()
             callStatus.code = code
             callStatus.error_buf = errorBuf
             return callStatus
@@ -402,7 +404,7 @@ private fun findLibraryName(componentName: String): String {
     if (libOverride != null) {
         return libOverride
     }
-    return "aptos_wasm_bindings"
+    return "aptos_rp_mobile"
 }
 
 private inline fun <reified Lib : Library> loadIndirect(componentName: String): Lib =
@@ -756,7 +758,7 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
-            loadIndirect<UniffiLib>(componentName = "aptos_wasm_bindings")
+            loadIndirect<UniffiLib>(componentName = "aptos_rp_mobile")
                 .also { lib: UniffiLib ->
                     uniffiCheckContractApiVersion(lib)
                     uniffiCheckApiChecksums(lib)
@@ -769,276 +771,322 @@ internal interface UniffiLib : Library {
         }
     }
 
-    fun uniffi_aptos_wasm_bindings_fn_clone_rangeproof(
+    fun uniffi_aptos_rp_mobile_fn_clone_batchrangeproof(
         `ptr`: Pointer,
         uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
 
-    fun uniffi_aptos_wasm_bindings_fn_free_rangeproof(
+    fun uniffi_aptos_rp_mobile_fn_free_batchrangeproof(
         `ptr`: Pointer,
         uniffi_out_err: UniffiRustCallStatus,
     ): Unit
 
-    fun uniffi_aptos_wasm_bindings_fn_method_rangeproof_comm(
+    fun uniffi_aptos_rp_mobile_fn_method_batchrangeproof_comms(
         `ptr`: Pointer,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
-    fun uniffi_aptos_wasm_bindings_fn_method_rangeproof_proof(
+    fun uniffi_aptos_rp_mobile_fn_method_batchrangeproof_proof(
         `ptr`: Pointer,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
-    fun uniffi_aptos_wasm_bindings_fn_func_range_proof(
-        `v`: Long,
-        `r`: RustBuffer.ByValue,
-        `valBase`: RustBuffer.ByValue,
-        `randBase`: RustBuffer.ByValue,
-        `numBits`: Long,
+    fun uniffi_aptos_rp_mobile_fn_clone_rangeproof(
+        `ptr`: Pointer,
         uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
 
-    fun uniffi_aptos_wasm_bindings_fn_func_verify_proof(
+    fun uniffi_aptos_rp_mobile_fn_free_rangeproof(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Unit
+
+    fun uniffi_aptos_rp_mobile_fn_method_rangeproof_comm(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_aptos_rp_mobile_fn_method_rangeproof_proof(
+        `ptr`: Pointer,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_aptos_rp_mobile_fn_func_batch_range_proof(
+        `v`: RustBuffer.ByValue,
+        `rs`: RustBuffer.ByValue,
+        `valBase`: RustBuffer.ByValue,
+        `randBase`: RustBuffer.ByValue,
+        `numBits`: Short,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Pointer
+
+    fun uniffi_aptos_rp_mobile_fn_func_batch_verify_proof(
         `proof`: RustBuffer.ByValue,
         `comm`: RustBuffer.ByValue,
         `valBase`: RustBuffer.ByValue,
         `randBase`: RustBuffer.ByValue,
-        `numBits`: Long,
+        `numBits`: Short,
         uniffi_out_err: UniffiRustCallStatus,
     ): Byte
 
-    fun ffi_aptos_wasm_bindings_rustbuffer_alloc(
+    fun uniffi_aptos_rp_mobile_fn_func_range_proof(
+        `v`: Long,
+        `r`: RustBuffer.ByValue,
+        `valBase`: RustBuffer.ByValue,
+        `randBase`: RustBuffer.ByValue,
+        `numBits`: Short,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Pointer
+
+    fun uniffi_aptos_rp_mobile_fn_func_verify_proof(
+        `proof`: RustBuffer.ByValue,
+        `comm`: RustBuffer.ByValue,
+        `valBase`: RustBuffer.ByValue,
+        `randBase`: RustBuffer.ByValue,
+        `numBits`: Short,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+
+    fun ffi_aptos_rp_mobile_rustbuffer_alloc(
         `size`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
-    fun ffi_aptos_wasm_bindings_rustbuffer_from_bytes(
+    fun ffi_aptos_rp_mobile_rustbuffer_from_bytes(
         `bytes`: ForeignBytes.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
-    fun ffi_aptos_wasm_bindings_rustbuffer_free(
+    fun ffi_aptos_rp_mobile_rustbuffer_free(
         `buf`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rustbuffer_reserve(
+    fun ffi_aptos_rp_mobile_rustbuffer_reserve(
         `buf`: RustBuffer.ByValue,
         `additional`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_u8(
+    fun ffi_aptos_rp_mobile_rust_future_poll_u8(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_u8(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_u8(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_u8(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_u8(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_u8(
+    fun ffi_aptos_rp_mobile_rust_future_complete_u8(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Byte
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_i8(
+    fun ffi_aptos_rp_mobile_rust_future_poll_i8(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_i8(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_i8(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_i8(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_i8(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_i8(
+    fun ffi_aptos_rp_mobile_rust_future_complete_i8(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Byte
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_u16(
+    fun ffi_aptos_rp_mobile_rust_future_poll_u16(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_u16(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_u16(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_u16(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_u16(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_u16(
+    fun ffi_aptos_rp_mobile_rust_future_complete_u16(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Short
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_i16(
+    fun ffi_aptos_rp_mobile_rust_future_poll_i16(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_i16(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_i16(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_i16(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_i16(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_i16(
+    fun ffi_aptos_rp_mobile_rust_future_complete_i16(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Short
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_u32(
+    fun ffi_aptos_rp_mobile_rust_future_poll_u32(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_u32(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_u32(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_u32(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_u32(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_u32(
+    fun ffi_aptos_rp_mobile_rust_future_complete_u32(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Int
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_i32(
+    fun ffi_aptos_rp_mobile_rust_future_poll_i32(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_i32(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_i32(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_i32(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_i32(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_i32(
+    fun ffi_aptos_rp_mobile_rust_future_complete_i32(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Int
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_u64(
+    fun ffi_aptos_rp_mobile_rust_future_poll_u64(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_u64(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_u64(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_u64(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_u64(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_u64(
+    fun ffi_aptos_rp_mobile_rust_future_complete_u64(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Long
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_i64(
+    fun ffi_aptos_rp_mobile_rust_future_poll_i64(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_i64(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_i64(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_i64(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_i64(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_i64(
+    fun ffi_aptos_rp_mobile_rust_future_complete_i64(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Long
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_f32(
+    fun ffi_aptos_rp_mobile_rust_future_poll_f32(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_f32(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_f32(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_f32(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_f32(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_f32(
+    fun ffi_aptos_rp_mobile_rust_future_complete_f32(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Float
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_f64(
+    fun ffi_aptos_rp_mobile_rust_future_poll_f64(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_f64(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_f64(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_f64(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_f64(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_f64(
+    fun ffi_aptos_rp_mobile_rust_future_complete_f64(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Double
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_pointer(
+    fun ffi_aptos_rp_mobile_rust_future_poll_pointer(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_pointer(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_pointer(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_pointer(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_pointer(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_pointer(
+    fun ffi_aptos_rp_mobile_rust_future_complete_pointer(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Pointer
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_rust_buffer(
+    fun ffi_aptos_rp_mobile_rust_future_poll_rust_buffer(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_rust_buffer(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_rust_buffer(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_rust_buffer(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_rust_buffer(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_rust_buffer(
+    fun ffi_aptos_rp_mobile_rust_future_complete_rust_buffer(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
-    fun ffi_aptos_wasm_bindings_rust_future_poll_void(
+    fun ffi_aptos_rp_mobile_rust_future_poll_void(
         `handle`: Long,
         `callback`: UniffiRustFutureContinuationCallback,
         `callbackData`: Long,
     ): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_cancel_void(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_cancel_void(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_free_void(`handle`: Long): Unit
+    fun ffi_aptos_rp_mobile_rust_future_free_void(`handle`: Long): Unit
 
-    fun ffi_aptos_wasm_bindings_rust_future_complete_void(
+    fun ffi_aptos_rp_mobile_rust_future_complete_void(
         `handle`: Long,
         uniffi_out_err: UniffiRustCallStatus,
     ): Unit
 
-    fun uniffi_aptos_wasm_bindings_checksum_func_range_proof(): Short
+    fun uniffi_aptos_rp_mobile_checksum_func_batch_range_proof(): Short
 
-    fun uniffi_aptos_wasm_bindings_checksum_func_verify_proof(): Short
+    fun uniffi_aptos_rp_mobile_checksum_func_batch_verify_proof(): Short
 
-    fun uniffi_aptos_wasm_bindings_checksum_method_rangeproof_comm(): Short
+    fun uniffi_aptos_rp_mobile_checksum_func_range_proof(): Short
 
-    fun uniffi_aptos_wasm_bindings_checksum_method_rangeproof_proof(): Short
+    fun uniffi_aptos_rp_mobile_checksum_func_verify_proof(): Short
 
-    fun ffi_aptos_wasm_bindings_uniffi_contract_version(): Int
+    fun uniffi_aptos_rp_mobile_checksum_method_batchrangeproof_comms(): Short
+
+    fun uniffi_aptos_rp_mobile_checksum_method_batchrangeproof_proof(): Short
+
+    fun uniffi_aptos_rp_mobile_checksum_method_rangeproof_comm(): Short
+
+    fun uniffi_aptos_rp_mobile_checksum_method_rangeproof_proof(): Short
+
+    fun ffi_aptos_rp_mobile_uniffi_contract_version(): Int
 }
 
 private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
     // Get the bindings contract version from our ComponentInterface
     val bindings_contract_version = 26
     // Get the scaffolding contract version by calling the into the dylib
-    val scaffolding_contract_version = lib.ffi_aptos_wasm_bindings_uniffi_contract_version()
+    val scaffolding_contract_version = lib.ffi_aptos_rp_mobile_uniffi_contract_version()
     if (bindings_contract_version != scaffolding_contract_version) {
         throw RuntimeException("UniFFI contract version mismatch: try cleaning and rebuilding your project")
     }
@@ -1046,16 +1094,28 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
-    if (lib.uniffi_aptos_wasm_bindings_checksum_func_range_proof() != 10702.toShort()) {
+    if (lib.uniffi_aptos_rp_mobile_checksum_func_batch_range_proof() != 15319.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_aptos_wasm_bindings_checksum_func_verify_proof() != 22137.toShort()) {
+    if (lib.uniffi_aptos_rp_mobile_checksum_func_batch_verify_proof() != 13178.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_aptos_wasm_bindings_checksum_method_rangeproof_comm() != 15185.toShort()) {
+    if (lib.uniffi_aptos_rp_mobile_checksum_func_range_proof() != 28050.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_aptos_wasm_bindings_checksum_method_rangeproof_proof() != 45003.toShort()) {
+    if (lib.uniffi_aptos_rp_mobile_checksum_func_verify_proof() != 61192.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aptos_rp_mobile_checksum_method_batchrangeproof_comms() != 9466.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aptos_rp_mobile_checksum_method_batchrangeproof_proof() != 33497.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aptos_rp_mobile_checksum_method_rangeproof_comm() != 21152.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aptos_rp_mobile_checksum_method_rangeproof_proof() != 40291.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1105,6 +1165,26 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
  * @suppress
  * */
 object NoPointer
+
+/**
+ * @suppress
+ */
+public object FfiConverterShort : FfiConverter<Short, Short> {
+    override fun lift(value: Short): Short = value
+
+    override fun read(buf: ByteBuffer): Short = buf.getShort()
+
+    override fun lower(value: Short): Short = value
+
+    override fun allocationSize(value: Short) = 2UL
+
+    override fun write(
+        value: Short,
+        buf: ByteBuffer,
+    ) {
+        buf.putShort(value)
+    }
+}
 
 /**
  * @suppress
@@ -1343,7 +1423,7 @@ interface UniffiCleaner {
     fun register(
         value: Any,
         cleanUpTask: Runnable,
-    ): Cleanable
+    ): UniffiCleaner.Cleanable
 
     companion object
 }
@@ -1382,10 +1462,12 @@ private fun UniffiCleaner.Companion.create(): UniffiCleaner =
     }
 
 private class JavaLangRefCleaner : UniffiCleaner {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     val cleaner =
         java.lang.ref.Cleaner
             .create()
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun register(
         value: Any,
         cleanUpTask: Runnable,
@@ -1395,8 +1477,251 @@ private class JavaLangRefCleaner : UniffiCleaner {
 private class JavaLangRefCleanable(
     val cleanable: java.lang.ref.Cleaner.Cleanable,
 ) : UniffiCleaner.Cleanable {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun clean() = cleanable.clean()
 }
+
+public interface BatchRangeProofInterface {
+    fun `comms`(): List<kotlin.ByteArray>
+
+    fun `proof`(): kotlin.ByteArray
+
+    companion object
+}
+
+open class BatchRangeProof :
+    Disposable,
+    AutoCloseable,
+    BatchRangeProofInterface {
+    constructor(pointer: Pointer) {
+        this.pointer = pointer
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    /**
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noPointer: NoPointer) {
+        this.pointer = null
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    protected val pointer: Pointer?
+    protected val cleanable: UniffiCleaner.Cleanable
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithPointer(block: (ptr: Pointer) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (!this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the pointer being freed concurrently.
+        try {
+            return block(this.uniffiClonePointer())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(
+        private val pointer: Pointer?,
+    ) : Runnable {
+        override fun run() {
+            pointer?.let { ptr ->
+                uniffiRustCall { status ->
+                    UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_free_batchrangeproof(ptr, status)
+                }
+            }
+        }
+    }
+
+    fun uniffiClonePointer(): Pointer =
+        uniffiRustCall { status ->
+            UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_clone_batchrangeproof(pointer!!, status)
+        }
+
+    override fun `comms`(): List<kotlin.ByteArray> =
+        FfiConverterSequenceByteArray.lift(
+            callWithPointer {
+                uniffiRustCall { _status ->
+                    UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_method_batchrangeproof_comms(
+                        it,
+                        _status,
+                    )
+                }
+            },
+        )
+
+    override fun `proof`(): kotlin.ByteArray =
+        FfiConverterByteArray.lift(
+            callWithPointer {
+                uniffiRustCall { _status ->
+                    UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_method_batchrangeproof_proof(
+                        it,
+                        _status,
+                    )
+                }
+            },
+        )
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBatchRangeProof : FfiConverter<BatchRangeProof, Pointer> {
+    override fun lower(value: BatchRangeProof): Pointer = value.uniffiClonePointer()
+
+    override fun lift(value: Pointer): BatchRangeProof = BatchRangeProof(value)
+
+    override fun read(buf: ByteBuffer): BatchRangeProof {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: BatchRangeProof) = 8UL
+
+    override fun write(
+        value: BatchRangeProof,
+        buf: ByteBuffer,
+    ) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+// This template implements a class for working with a Rust struct via a Pointer/Arc<T>
+// to the live Rust struct on the other side of the FFI.
+//
+// Each instance implements core operations for working with the Rust `Arc<T>` and the
+// Kotlin Pointer to work with the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque pointer to the underlying Rust struct.
+//     Method calls need to read this pointer from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its pointer should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the pointer, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the pointer, but is interrupted
+//      before it can pass the pointer over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read pointer value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
 
 public interface RangeProofInterface {
     fun `comm`(): kotlin.ByteArray
@@ -1479,7 +1804,7 @@ open class RangeProof :
         override fun run() {
             pointer?.let { ptr ->
                 uniffiRustCall { status ->
-                    UniffiLib.INSTANCE.uniffi_aptos_wasm_bindings_fn_free_rangeproof(ptr, status)
+                    UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_free_rangeproof(ptr, status)
                 }
             }
         }
@@ -1487,14 +1812,14 @@ open class RangeProof :
 
     fun uniffiClonePointer(): Pointer =
         uniffiRustCall { status ->
-            UniffiLib.INSTANCE.uniffi_aptos_wasm_bindings_fn_clone_rangeproof(pointer!!, status)
+            UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_clone_rangeproof(pointer!!, status)
         }
 
     override fun `comm`(): kotlin.ByteArray =
         FfiConverterByteArray.lift(
             callWithPointer {
                 uniffiRustCall { _status ->
-                    UniffiLib.INSTANCE.uniffi_aptos_wasm_bindings_fn_method_rangeproof_comm(
+                    UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_method_rangeproof_comm(
                         it,
                         _status,
                     )
@@ -1506,7 +1831,7 @@ open class RangeProof :
         FfiConverterByteArray.lift(
             callWithPointer {
                 uniffiRustCall { _status ->
-                    UniffiLib.INSTANCE.uniffi_aptos_wasm_bindings_fn_method_rangeproof_proof(
+                    UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_method_rangeproof_proof(
                         it,
                         _status,
                     )
@@ -1598,22 +1923,120 @@ public object FfiConverterTypeMyError : FfiConverterRustBuffer<MyException> {
     }
 }
 
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceULong : FfiConverterRustBuffer<List<kotlin.ULong>> {
+    override fun read(buf: ByteBuffer): List<kotlin.ULong> {
+        val len = buf.getInt()
+        return List<kotlin.ULong>(len) {
+            FfiConverterULong.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.ULong>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterULong.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(
+        value: List<kotlin.ULong>,
+        buf: ByteBuffer,
+    ) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterULong.write(it, buf)
+        }
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceByteArray : FfiConverterRustBuffer<List<kotlin.ByteArray>> {
+    override fun read(buf: ByteBuffer): List<kotlin.ByteArray> {
+        val len = buf.getInt()
+        return List<kotlin.ByteArray>(len) {
+            FfiConverterByteArray.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.ByteArray>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterByteArray.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(
+        value: List<kotlin.ByteArray>,
+        buf: ByteBuffer,
+    ) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterByteArray.write(it, buf)
+        }
+    }
+}
+
+@Throws(MyException::class)
+fun `batchRangeProof`(
+    `v`: List<kotlin.ULong>,
+    `rs`: List<kotlin.ByteArray>,
+    `valBase`: kotlin.ByteArray,
+    `randBase`: kotlin.ByteArray,
+    `numBits`: kotlin.Short,
+): BatchRangeProof =
+    FfiConverterTypeBatchRangeProof.lift(
+        uniffiRustCallWithError(MyException) { _status ->
+            UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_func_batch_range_proof(
+                FfiConverterSequenceULong.lower(`v`),
+                FfiConverterSequenceByteArray.lower(`rs`),
+                FfiConverterByteArray.lower(`valBase`),
+                FfiConverterByteArray.lower(`randBase`),
+                FfiConverterShort.lower(`numBits`),
+                _status,
+            )
+        },
+    )
+
+@Throws(MyException::class)
+fun `batchVerifyProof`(
+    `proof`: kotlin.ByteArray,
+    `comm`: List<kotlin.ByteArray>,
+    `valBase`: kotlin.ByteArray,
+    `randBase`: kotlin.ByteArray,
+    `numBits`: kotlin.Short,
+): kotlin.Boolean =
+    FfiConverterBoolean.lift(
+        uniffiRustCallWithError(MyException) { _status ->
+            UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_func_batch_verify_proof(
+                FfiConverterByteArray.lower(`proof`),
+                FfiConverterSequenceByteArray.lower(`comm`),
+                FfiConverterByteArray.lower(`valBase`),
+                FfiConverterByteArray.lower(`randBase`),
+                FfiConverterShort.lower(`numBits`),
+                _status,
+            )
+        },
+    )
+
 @Throws(MyException::class)
 fun `rangeProof`(
     `v`: kotlin.ULong,
     `r`: kotlin.ByteArray,
     `valBase`: kotlin.ByteArray,
     `randBase`: kotlin.ByteArray,
-    `numBits`: kotlin.ULong,
+    `numBits`: kotlin.Short,
 ): RangeProof =
     FfiConverterTypeRangeProof.lift(
         uniffiRustCallWithError(MyException) { _status ->
-            UniffiLib.INSTANCE.uniffi_aptos_wasm_bindings_fn_func_range_proof(
+            UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_func_range_proof(
                 FfiConverterULong.lower(`v`),
                 FfiConverterByteArray.lower(`r`),
                 FfiConverterByteArray.lower(`valBase`),
                 FfiConverterByteArray.lower(`randBase`),
-                FfiConverterULong.lower(`numBits`),
+                FfiConverterShort.lower(`numBits`),
                 _status,
             )
         },
@@ -1625,16 +2048,16 @@ fun `verifyProof`(
     `comm`: kotlin.ByteArray,
     `valBase`: kotlin.ByteArray,
     `randBase`: kotlin.ByteArray,
-    `numBits`: kotlin.ULong,
+    `numBits`: kotlin.Short,
 ): kotlin.Boolean =
     FfiConverterBoolean.lift(
         uniffiRustCallWithError(MyException) { _status ->
-            UniffiLib.INSTANCE.uniffi_aptos_wasm_bindings_fn_func_verify_proof(
+            UniffiLib.INSTANCE.uniffi_aptos_rp_mobile_fn_func_verify_proof(
                 FfiConverterByteArray.lower(`proof`),
                 FfiConverterByteArray.lower(`comm`),
                 FfiConverterByteArray.lower(`valBase`),
                 FfiConverterByteArray.lower(`randBase`),
-                FfiConverterULong.lower(`numBits`),
+                FfiConverterShort.lower(`numBits`),
                 _status,
             )
         },

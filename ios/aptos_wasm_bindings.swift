@@ -7,8 +7,8 @@ import Foundation
 // Depending on the consumer's build setup, the low-level FFI code
 // might be in a separate module, or it might be compiled inline into
 // this module. This is a bit of light hackery to work with both.
-#if canImport(aptos_wasm_bindingsFFI)
-import aptos_wasm_bindingsFFI
+#if canImport(aptos_rp_mobileFFI)
+import aptos_rp_mobileFFI
 #endif
 
 fileprivate extension RustBuffer {
@@ -25,13 +25,13 @@ fileprivate extension RustBuffer {
     }
 
     static func from(_ ptr: UnsafeBufferPointer<UInt8>) -> RustBuffer {
-        try! rustCall { ffi_aptos_wasm_bindings_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
+        try! rustCall { ffi_aptos_rp_mobile_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
     }
 
     // Frees the buffer in place.
     // The buffer must not be used after this is called.
     func deallocate() {
-        try! rustCall { ffi_aptos_wasm_bindings_rustbuffer_free(self, $0) }
+        try! rustCall { ffi_aptos_rp_mobile_rustbuffer_free(self, $0) }
     }
 }
 
@@ -399,6 +399,22 @@ fileprivate class UniffiHandleMap<T> {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterInt16: FfiConverterPrimitive {
+    typealias FfiType = Int16
+    typealias SwiftType = Int16
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Int16 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Int16, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
     typealias FfiType = UInt64
     typealias SwiftType = UInt64
@@ -498,12 +514,141 @@ fileprivate struct FfiConverterData: FfiConverterRustBuffer {
 
 
 
-public protocol RangeProofProtocol : AnyObject {
-    
-    func comm()  -> Data
-    
+public protocol BatchRangeProofProtocol : AnyObject {
+
+    func comms()  -> [Data]
+
     func proof()  -> Data
-    
+
+}
+
+open class BatchRangeProof:
+    BatchRangeProofProtocol {
+    fileprivate let pointer: UnsafeMutableRawPointer!
+
+    /// Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoPointer {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+    required public init(unsafeFromRawPointer pointer: UnsafeMutableRawPointer) {
+        self.pointer = pointer
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noPointer: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing [Pointer] the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noPointer: NoPointer) {
+        self.pointer = nil
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiClonePointer() -> UnsafeMutableRawPointer {
+        return try! rustCall { uniffi_aptos_rp_mobile_fn_clone_batchrangeproof(self.pointer, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        guard let pointer = pointer else {
+            return
+        }
+
+        try! rustCall { uniffi_aptos_rp_mobile_fn_free_batchrangeproof(pointer, $0) }
+    }
+
+
+
+
+open func comms() -> [Data] {
+    return try!  FfiConverterSequenceData.lift(try! rustCall() {
+    uniffi_aptos_rp_mobile_fn_method_batchrangeproof_comms(self.uniffiClonePointer(),$0
+    )
+})
+}
+
+open func proof() -> Data {
+    return try!  FfiConverterData.lift(try! rustCall() {
+    uniffi_aptos_rp_mobile_fn_method_batchrangeproof_proof(self.uniffiClonePointer(),$0
+    )
+})
+}
+
+
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBatchRangeProof: FfiConverter {
+
+    typealias FfiType = UnsafeMutableRawPointer
+    typealias SwiftType = BatchRangeProof
+
+    public static func lift(_ pointer: UnsafeMutableRawPointer) throws -> BatchRangeProof {
+        return BatchRangeProof(unsafeFromRawPointer: pointer)
+    }
+
+    public static func lower(_ value: BatchRangeProof) -> UnsafeMutableRawPointer {
+        return value.uniffiClonePointer()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BatchRangeProof {
+        let v: UInt64 = try readInt(&buf)
+        // The Rust code won't compile if a pointer won't fit in a UInt64.
+        // We have to go via `UInt` because that's the thing that's the size of a pointer.
+        let ptr = UnsafeMutableRawPointer(bitPattern: UInt(truncatingIfNeeded: v))
+        if (ptr == nil) {
+            throw UniffiInternalError.unexpectedNullPointer
+        }
+        return try lift(ptr!)
+    }
+
+    public static func write(_ value: BatchRangeProof, into buf: inout [UInt8]) {
+        // This fiddling is because `Int` is the thing that's the same size as a pointer.
+        // The Rust code won't compile if a pointer won't fit in a `UInt64`.
+        writeInt(&buf, UInt64(bitPattern: Int64(Int(bitPattern: lower(value)))))
+    }
+}
+
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchRangeProof_lift(_ pointer: UnsafeMutableRawPointer) throws -> BatchRangeProof {
+    return try FfiConverterTypeBatchRangeProof.lift(pointer)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchRangeProof_lower(_ value: BatchRangeProof) -> UnsafeMutableRawPointer {
+    return FfiConverterTypeBatchRangeProof.lower(value)
+}
+
+
+
+
+public protocol RangeProofProtocol : AnyObject {
+
+    func comm()  -> Data
+
+    func proof()  -> Data
+
 }
 
 open class RangeProof:
@@ -541,7 +686,7 @@ open class RangeProof:
     @_documentation(visibility: private)
 #endif
     public func uniffiClonePointer() -> UnsafeMutableRawPointer {
-        return try! rustCall { uniffi_aptos_wasm_bindings_fn_clone_rangeproof(self.pointer, $0) }
+        return try! rustCall { uniffi_aptos_rp_mobile_fn_clone_rangeproof(self.pointer, $0) }
     }
     // No primary constructor declared for this class.
 
@@ -550,26 +695,26 @@ open class RangeProof:
             return
         }
 
-        try! rustCall { uniffi_aptos_wasm_bindings_fn_free_rangeproof(pointer, $0) }
+        try! rustCall { uniffi_aptos_rp_mobile_fn_free_rangeproof(pointer, $0) }
     }
 
-    
 
-    
+
+
 open func comm() -> Data {
     return try!  FfiConverterData.lift(try! rustCall() {
-    uniffi_aptos_wasm_bindings_fn_method_rangeproof_comm(self.uniffiClonePointer(),$0
+    uniffi_aptos_rp_mobile_fn_method_rangeproof_comm(self.uniffiClonePointer(),$0
     )
 })
 }
-    
+
 open func proof() -> Data {
     return try!  FfiConverterData.lift(try! rustCall() {
-    uniffi_aptos_wasm_bindings_fn_method_rangeproof_proof(self.uniffiClonePointer(),$0
+    uniffi_aptos_rp_mobile_fn_method_rangeproof_proof(self.uniffiClonePointer(),$0
     )
 })
 }
-    
+
 
 }
 
@@ -627,14 +772,14 @@ public func FfiConverterTypeRangeProof_lower(_ value: RangeProof) -> UnsafeMutab
 
 public enum MyError {
 
-    
-    
+
+
     case MissingInput(message: String)
-    
+
     case IndexOutOfBounds(message: String)
-    
+
     case Generic(message: String)
-    
+
 }
 
 
@@ -648,21 +793,21 @@ public struct FfiConverterTypeMyError: FfiConverterRustBuffer {
         let variant: Int32 = try readInt(&buf)
         switch variant {
 
-        
 
-        
+
+
         case 1: return .MissingInput(
             message: try FfiConverterString.read(from: &buf)
         )
-        
+
         case 2: return .IndexOutOfBounds(
             message: try FfiConverterString.read(from: &buf)
         )
-        
+
         case 3: return .Generic(
             message: try FfiConverterString.read(from: &buf)
         )
-        
+
 
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -671,9 +816,9 @@ public struct FfiConverterTypeMyError: FfiConverterRustBuffer {
     public static func write(_ value: MyError, into buf: inout [UInt8]) {
         switch value {
 
-        
 
-        
+
+
         case .MissingInput(_ /* message is ignored*/):
             writeInt(&buf, Int32(1))
         case .IndexOutOfBounds(_ /* message is ignored*/):
@@ -681,7 +826,7 @@ public struct FfiConverterTypeMyError: FfiConverterRustBuffer {
         case .Generic(_ /* message is ignored*/):
             writeInt(&buf, Int32(3))
 
-        
+
         }
     }
 }
@@ -694,25 +839,97 @@ extension MyError: Foundation.LocalizedError {
         String(reflecting: self)
     }
 }
-public func rangeProof(v: UInt64, r: Data, valBase: Data, randBase: Data, numBits: UInt64)throws  -> RangeProof {
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceUInt64: FfiConverterRustBuffer {
+    typealias SwiftType = [UInt64]
+
+    public static func write(_ value: [UInt64], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterUInt64.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [UInt64] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [UInt64]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterUInt64.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceData: FfiConverterRustBuffer {
+    typealias SwiftType = [Data]
+
+    public static func write(_ value: [Data], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterData.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [Data] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [Data]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterData.read(from: &buf))
+        }
+        return seq
+    }
+}
+public func batchRangeProof(v: [UInt64], rs: [Data], valBase: Data, randBase: Data, numBits: Int16)throws  -> BatchRangeProof {
+    return try  FfiConverterTypeBatchRangeProof.lift(try rustCallWithError(FfiConverterTypeMyError.lift) {
+    uniffi_aptos_rp_mobile_fn_func_batch_range_proof(
+        FfiConverterSequenceUInt64.lower(v),
+        FfiConverterSequenceData.lower(rs),
+        FfiConverterData.lower(valBase),
+        FfiConverterData.lower(randBase),
+        FfiConverterInt16.lower(numBits),$0
+    )
+})
+}
+public func batchVerifyProof(proof: Data, comm: [Data], valBase: Data, randBase: Data, numBits: Int16)throws  -> Bool {
+    return try  FfiConverterBool.lift(try rustCallWithError(FfiConverterTypeMyError.lift) {
+    uniffi_aptos_rp_mobile_fn_func_batch_verify_proof(
+        FfiConverterData.lower(proof),
+        FfiConverterSequenceData.lower(comm),
+        FfiConverterData.lower(valBase),
+        FfiConverterData.lower(randBase),
+        FfiConverterInt16.lower(numBits),$0
+    )
+})
+}
+public func rangeProof(v: UInt64, r: Data, valBase: Data, randBase: Data, numBits: Int16)throws  -> RangeProof {
     return try  FfiConverterTypeRangeProof.lift(try rustCallWithError(FfiConverterTypeMyError.lift) {
-    uniffi_aptos_wasm_bindings_fn_func_range_proof(
+    uniffi_aptos_rp_mobile_fn_func_range_proof(
         FfiConverterUInt64.lower(v),
         FfiConverterData.lower(r),
         FfiConverterData.lower(valBase),
         FfiConverterData.lower(randBase),
-        FfiConverterUInt64.lower(numBits),$0
+        FfiConverterInt16.lower(numBits),$0
     )
 })
 }
-public func verifyProof(proof: Data, comm: Data, valBase: Data, randBase: Data, numBits: UInt64)throws  -> Bool {
+public func verifyProof(proof: Data, comm: Data, valBase: Data, randBase: Data, numBits: Int16)throws  -> Bool {
     return try  FfiConverterBool.lift(try rustCallWithError(FfiConverterTypeMyError.lift) {
-    uniffi_aptos_wasm_bindings_fn_func_verify_proof(
+    uniffi_aptos_rp_mobile_fn_func_verify_proof(
         FfiConverterData.lower(proof),
         FfiConverterData.lower(comm),
         FfiConverterData.lower(valBase),
         FfiConverterData.lower(randBase),
-        FfiConverterUInt64.lower(numBits),$0
+        FfiConverterInt16.lower(numBits),$0
     )
 })
 }
@@ -728,20 +945,32 @@ private var initializationResult: InitializationResult = {
     // Get the bindings contract version from our ComponentInterface
     let bindings_contract_version = 26
     // Get the scaffolding contract version by calling the into the dylib
-    let scaffolding_contract_version = ffi_aptos_wasm_bindings_uniffi_contract_version()
+    let scaffolding_contract_version = ffi_aptos_rp_mobile_uniffi_contract_version()
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
-    if (uniffi_aptos_wasm_bindings_checksum_func_range_proof() != 10702) {
+    if (uniffi_aptos_rp_mobile_checksum_func_batch_range_proof() != 15319) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_aptos_wasm_bindings_checksum_func_verify_proof() != 22137) {
+    if (uniffi_aptos_rp_mobile_checksum_func_batch_verify_proof() != 13178) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_aptos_wasm_bindings_checksum_method_rangeproof_comm() != 15185) {
+    if (uniffi_aptos_rp_mobile_checksum_func_range_proof() != 28050) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_aptos_wasm_bindings_checksum_method_rangeproof_proof() != 45003) {
+    if (uniffi_aptos_rp_mobile_checksum_func_verify_proof() != 61192) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aptos_rp_mobile_checksum_method_batchrangeproof_comms() != 9466) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aptos_rp_mobile_checksum_method_batchrangeproof_proof() != 33497) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aptos_rp_mobile_checksum_method_rangeproof_comm() != 21152) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aptos_rp_mobile_checksum_method_rangeproof_proof() != 40291) {
         return InitializationResult.apiChecksumMismatch
     }
 
