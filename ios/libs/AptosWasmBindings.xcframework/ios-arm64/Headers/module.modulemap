@@ -1,4 +1,4 @@
-module aptos_wasm_bindingsFFI {
-    header "aptos_wasm_bindingsFFI.h"
+module aptos_rp_mobileFFI {
+    header "aptos_rp_mobileFFI.h"
     export *
 }

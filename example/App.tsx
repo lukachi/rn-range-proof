@@ -1,115 +1,127 @@
-import { genRangeProof, verifyRangeProof } from "range-proof";
+import {
+  genBatchRangeProof,
+  genRangeProof,
+  verifyBatchRangeProof,
+  verifyRangeProof,
+} from "range-proof";
 import { useState } from "react";
-import { Pressable, SafeAreaView, Text, View } from "react-native";
+import { Button, SafeAreaView } from "react-native";
 
 const TEST_DATA = {
-  amountChunks: [55n, 0n, 0n, 0n],
-  decryptionKey: new Uint8Array([
-    125, 84, 228, 96, 34, 152, 39, 245, 244, 8, 71, 150, 154, 13, 98, 26, 142,
-    136, 68, 164, 63, 6, 49, 199, 149, 35, 25, 128, 101, 14, 225, 2,
-  ]),
-  valBase: new Uint8Array([
-    226, 242, 174, 10, 106, 188, 78, 113, 168, 132, 169, 97, 197, 0, 81, 95, 88,
-    227, 11, 106, 165, 130, 221, 141, 182, 166, 89, 69, 224, 141, 45, 118,
-  ]),
-  amountEncryptedDs: [
+  amountChunks: [100n, 65535n, 65535n, 65535n, 0n, 0n, 0n, 0n],
+  rs: [
     new Uint8Array([
-      42, 186, 111, 88, 176, 127, 42, 24, 24, 102, 236, 62, 178, 132, 27, 59,
-      227, 183, 90, 241, 164, 213, 145, 240, 184, 124, 62, 108, 14, 145, 192,
-      38,
+      156, 109, 62, 196, 154, 157, 21, 68, 90, 114, 172, 209, 197, 139, 143, 61,
+      160, 58, 39, 102, 219, 171, 91, 239, 231, 110, 102, 68, 251, 78, 229, 0,
     ]),
     new Uint8Array([
-      226, 210, 44, 219, 113, 243, 220, 148, 83, 4, 51, 60, 156, 220, 163, 20,
-      218, 216, 9, 115, 64, 17, 220, 201, 117, 45, 190, 43, 122, 199, 121, 25,
+      226, 255, 163, 21, 112, 110, 162, 20, 221, 143, 164, 105, 231, 33, 193,
+      148, 18, 80, 162, 29, 129, 255, 120, 26, 185, 11, 14, 203, 58, 117, 11, 1,
     ]),
     new Uint8Array([
-      62, 215, 225, 94, 218, 55, 45, 211, 64, 165, 72, 234, 151, 144, 85, 215,
-      190, 159, 18, 254, 230, 71, 121, 158, 218, 165, 14, 211, 86, 84, 182, 50,
+      211, 135, 180, 67, 78, 113, 51, 3, 30, 106, 175, 250, 253, 98, 107, 107,
+      107, 121, 18, 79, 184, 72, 112, 110, 110, 43, 88, 237, 40, 115, 230, 6,
     ]),
     new Uint8Array([
-      178, 71, 74, 220, 119, 253, 31, 238, 94, 31, 156, 219, 68, 165, 18, 35,
-      22, 204, 9, 162, 113, 25, 15, 100, 60, 95, 251, 218, 228, 246, 13, 25,
-    ]),
-  ],
-};
-
-const VERIFY_TEST_DATA = {
-  commitment: [
-    new Uint8Array([
-      4, 226, 120, 146, 77, 86, 217, 68, 67, 94, 101, 38, 243, 226, 64, 8, 99,
-      170, 118, 79, 92, 20, 82, 199, 217, 34, 82, 254, 166, 138, 60, 44,
+      56, 81, 75, 153, 26, 80, 124, 115, 117, 11, 158, 226, 43, 22, 118, 212,
+      25, 35, 141, 99, 176, 184, 129, 64, 95, 152, 221, 31, 146, 30, 124, 15,
     ]),
     new Uint8Array([
-      136, 126, 228, 242, 8, 156, 138, 30, 35, 142, 203, 73, 159, 213, 39, 4,
-      21, 196, 249, 31, 195, 222, 104, 173, 224, 20, 133, 0, 118, 22, 71, 3,
+      14, 2, 23, 100, 172, 102, 32, 214, 40, 175, 237, 119, 212, 103, 134, 94,
+      56, 231, 33, 141, 255, 144, 46, 225, 135, 191, 49, 99, 200, 179, 55, 15,
     ]),
     new Uint8Array([
-      234, 33, 238, 117, 90, 165, 202, 210, 193, 37, 78, 203, 81, 13, 77, 3,
-      154, 84, 113, 193, 135, 44, 69, 240, 31, 244, 71, 79, 34, 9, 135, 65,
+      6, 141, 188, 12, 66, 106, 33, 133, 111, 176, 43, 67, 187, 180, 73, 117,
+      141, 252, 16, 34, 219, 237, 107, 148, 6, 46, 121, 189, 220, 189, 23, 15,
     ]),
     new Uint8Array([
-      130, 243, 177, 223, 136, 167, 180, 174, 234, 134, 36, 91, 181, 181, 195,
-      168, 243, 200, 78, 86, 107, 106, 212, 145, 183, 75, 84, 187, 46, 157, 151,
-      87,
+      77, 236, 7, 237, 246, 153, 229, 89, 79, 53, 191, 120, 201, 221, 49, 168,
+      233, 183, 255, 203, 68, 93, 210, 76, 15, 214, 104, 59, 171, 1, 28, 12,
+    ]),
+    new Uint8Array([
+      111, 233, 138, 35, 138, 32, 76, 127, 96, 165, 119, 52, 156, 0, 140, 60,
+      12, 122, 15, 203, 194, 112, 17, 92, 82, 51, 120, 157, 63, 0, 242, 14,
     ]),
   ],
   valBase: new Uint8Array([
     226, 242, 174, 10, 106, 188, 78, 113, 168, 132, 169, 97, 197, 0, 81, 95, 88,
     227, 11, 106, 165, 130, 221, 141, 182, 166, 89, 69, 224, 141, 45, 118,
   ]),
-  randBase: [
-    new Uint8Array([
-      42, 186, 111, 88, 176, 127, 42, 24, 24, 102, 236, 62, 178, 132, 27, 59,
-      227, 183, 90, 241, 164, 213, 145, 240, 184, 124, 62, 108, 14, 145, 192,
-      38,
-    ]),
-    new Uint8Array([
-      226, 210, 44, 219, 113, 243, 220, 148, 83, 4, 51, 60, 156, 220, 163, 20,
-      218, 216, 9, 115, 64, 17, 220, 201, 117, 45, 190, 43, 122, 199, 121, 25,
-    ]),
-    new Uint8Array([
-      62, 215, 225, 94, 218, 55, 45, 211, 64, 165, 72, 234, 151, 144, 85, 215,
-      190, 159, 18, 254, 230, 71, 121, 158, 218, 165, 14, 211, 86, 84, 182, 50,
-    ]),
-    new Uint8Array([
-      178, 71, 74, 220, 119, 253, 31, 238, 94, 31, 156, 219, 68, 165, 18, 35,
-      22, 204, 9, 162, 113, 25, 15, 100, 60, 95, 251, 218, 228, 246, 13, 25,
-    ]),
-  ],
+  rand_base: new Uint8Array([
+    140, 146, 64, 180, 86, 169, 230, 220, 101, 195, 119, 161, 4, 141, 116, 95,
+    148, 160, 140, 219, 127, 68, 203, 205, 123, 70, 243, 64, 72, 135, 17, 52,
+  ]),
+  num_bits: 16,
 };
 
 const generate = () => {
-  return Promise.all(
-    TEST_DATA.amountChunks.map((chunk, i) => {
-      return genRangeProof({
-        v: chunk,
-        r: TEST_DATA.decryptionKey,
-        valBase: TEST_DATA.valBase,
-        randBase: TEST_DATA.amountEncryptedDs[i],
-      });
-    }),
-  );
+  try {
+    return Promise.all(
+      TEST_DATA.amountChunks.map((chunk, i) => {
+        return genRangeProof({
+          v: chunk,
+          r: TEST_DATA.rs[i],
+          valBase: TEST_DATA.valBase,
+          randBase: TEST_DATA.rand_base,
+        });
+      }),
+    );
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const verify = async (proof: Uint8Array[]) => {
-  const results = await Promise.all(
-    proof.map((proof, i) =>
-      verifyRangeProof({
-        proof,
-        commitment: VERIFY_TEST_DATA.commitment[i],
-        valBase: VERIFY_TEST_DATA.valBase,
-        randBase: VERIFY_TEST_DATA.randBase[i],
-      }),
-    ),
-  );
+const verify = async (proof: Uint8Array[], commitments: Uint8Array[]) => {
+  try {
+    const results = await Promise.all(
+      proof.map((proof, i) =>
+        verifyRangeProof({
+          proof,
+          commitment: commitments[i],
+          valBase: TEST_DATA.valBase,
+          randBase: TEST_DATA.rand_base,
+        }),
+      ),
+    );
 
-  console.log("results", results);
+    return results.every((isValid) => isValid);
+  } catch (error) {
+    console.error(error);
+  }
 
-  return results.every((isValid) => isValid);
+  return false;
+};
+
+const generateBatch = async () => {
+  try {
+    return await genBatchRangeProof({
+      vs: TEST_DATA.amountChunks,
+      rs: TEST_DATA.rs,
+      valBase: TEST_DATA.valBase,
+      randBase: TEST_DATA.rand_base,
+      bits: 16,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const verifyBatch = async (proof: Uint8Array, commitments: Uint8Array[]) => {
+  return verifyBatchRangeProof({
+    proof,
+    comms: commitments,
+    valBase: TEST_DATA.valBase,
+    randBase: TEST_DATA.rand_base,
+    numBits: 16,
+  });
 };
 
 export default function App() {
   const [proof, setProof] = useState<Uint8Array[]>();
+  const [commitments, setCommitments] = useState<Uint8Array[]>();
+
+  const [batchProof, setBatchProof] = useState<Uint8Array>();
+  const [batchCommitments, setBatchCommitments] = useState<Uint8Array[]>();
 
   return (
     <SafeAreaView
@@ -119,26 +131,43 @@ export default function App() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          gap: 12,
         },
       ]}
     >
-      <Pressable
+      <Button
+        title="Generate"
         onPress={async () => {
           const generated = await generate();
           console.log(generated);
-          setProof(generated.map((el) => el.proof));
+          setProof(generated?.map((el) => el.proof));
+          setCommitments(generated?.map((el) => el.commitment));
         }}
-      >
-        <Text>Generate</Text>
-      </Pressable>
-      <Pressable
+      />
+      <Button
+        title="Verify"
         onPress={async () => {
-          console.log(await verify(proof!));
+          console.log(await verify(proof!, commitments!));
         }}
         disabled={!proof?.length}
-      >
-        <Text>Verify</Text>
-      </Pressable>
+      />
+
+      <Button
+        title="Generate Batch"
+        onPress={async () => {
+          const generated = await generateBatch();
+          console.log(generated);
+          setBatchProof(generated?.proof);
+          setBatchCommitments(generated?.commitments);
+        }}
+      />
+      <Button
+        title="Verify Batch"
+        onPress={async () => {
+          console.log(await verifyBatch(batchProof!, batchCommitments!));
+        }}
+        disabled={!batchProof?.length}
+      />
     </SafeAreaView>
   );
 }

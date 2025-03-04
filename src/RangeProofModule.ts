@@ -1,11 +1,34 @@
 import { NativeModule, requireNativeModule } from "expo";
 
-import { RangeProofModuleEvents } from "./RangeProof.types";
-
-declare class RangeProofModule extends NativeModule<RangeProofModuleEvents> {
-  PI: number;
-  hello(): string;
-  setValueAsync(value: string): Promise<void>;
+declare class RangeProofModule extends NativeModule<{}> {
+  genRangeProof: (
+    v: number,
+    r: Uint8Array,
+    valBase: Uint8Array,
+    randBase: Uint8Array,
+    bits?: number,
+  ) => Promise<Uint8Array<ArrayBufferLike>>;
+  verifyRangeProof: (
+    proof: Uint8Array,
+    commitment: Uint8Array,
+    valBase: Uint8Array,
+    randBase: Uint8Array,
+    bits: number,
+  ) => Promise<boolean>;
+  genBatchRangeProof: (
+    vs: number[],
+    rsBytes: Uint8Array,
+    valBase: Uint8Array,
+    randBase: Uint8Array,
+    bits: number,
+  ) => Promise<Uint8Array>;
+  verifyBatchRangeProof: (
+    proof: Uint8Array,
+    commitmentsBytes: Uint8Array,
+    valBase: Uint8Array,
+    randBase: Uint8Array,
+    bits: number,
+  ) => Promise<boolean>;
 }
 
 // This call loads the native module object from the JSI.
