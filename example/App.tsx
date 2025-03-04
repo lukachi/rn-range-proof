@@ -55,31 +55,41 @@ const TEST_DATA = {
 };
 
 const generate = () => {
-  return Promise.all(
-    TEST_DATA.amountChunks.map((chunk, i) => {
-      return genRangeProof({
-        v: chunk,
-        r: TEST_DATA.rs[i],
-        valBase: TEST_DATA.valBase,
-        randBase: TEST_DATA.rand_base,
-      });
-    }),
-  );
+  try {
+    return Promise.all(
+      TEST_DATA.amountChunks.map((chunk, i) => {
+        return genRangeProof({
+          v: chunk,
+          r: TEST_DATA.rs[i],
+          valBase: TEST_DATA.valBase,
+          randBase: TEST_DATA.rand_base,
+        });
+      }),
+    );
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 const verify = async (proof: Uint8Array[], commitments: Uint8Array[]) => {
-  const results = await Promise.all(
-    proof.map((proof, i) =>
-      verifyRangeProof({
-        proof,
-        commitment: commitments[i],
-        valBase: TEST_DATA.valBase,
-        randBase: TEST_DATA.rand_base,
-      }),
-    ),
-  );
+  try {
+    const results = await Promise.all(
+      proof.map((proof, i) =>
+        verifyRangeProof({
+          proof,
+          commitment: commitments[i],
+          valBase: TEST_DATA.valBase,
+          randBase: TEST_DATA.rand_base,
+        }),
+      ),
+    );
 
-  return results.every((isValid) => isValid);
+    return results.every((isValid) => isValid);
+  } catch (error) {
+    console.error(error);
+  }
+
+  return false;
 };
 
 const generateBatch = async () => {
@@ -130,8 +140,8 @@ export default function App() {
         onPress={async () => {
           const generated = await generate();
           console.log(generated);
-          setProof(generated.map((el) => el.proof));
-          setCommitments(generated.map((el) => el.commitment));
+          setProof(generated?.map((el) => el.proof));
+          setCommitments(generated?.map((el) => el.commitment));
         }}
       />
       <Button

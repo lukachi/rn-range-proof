@@ -4,6 +4,11 @@ import com.google.gson.Gson
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
+data class RangeProofResult(
+  val commitment: ByteArray,
+  val proof: ByteArray
+)
+
 data class BatchRangeProofResult(
   val commitments: List<ByteArray>,
   val proof: ByteArray
@@ -20,16 +25,20 @@ class RangeProofModule : Module() {
     Name("RangeProof")
 
     AsyncFunction("genRangeProof") { v: Long, r: ByteArray, valBase: ByteArray, randBase: ByteArray, bits: Long ->
+      println("genRangeProof")
       val result = rangeProof(v.toULong(), r, valBase, randBase, bits.toShort())
 
       val commitmentBytes = result.comm()
-
       val proofBytes = result.proof()
 
-      return@AsyncFunction mapOf(
-        "commitment" to commitmentBytes,
-        "proof" to proofBytes
+      val response = RangeProofResult(
+        commitment = commitmentBytes,
+        proof = proofBytes
       )
+
+      val responseJsonString = Gson().toJson(response)
+
+      return@AsyncFunction responseJsonString.toByteArray()
     }
 
     AsyncFunction("verifyRangeProof") { proof: ByteArray, commitment: ByteArray, valBase: ByteArray, randBase: ByteArray, bits: Long ->
