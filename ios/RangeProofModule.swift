@@ -7,7 +7,7 @@ struct RangeProofResult: Codable {
 
 struct BatchRangeProofResult: Codable {
     let proof: [UInt8]
-    let commitments: [Data]
+    let commitments: [[UInt64]]
 }
 
 public class RangeProofModule: Module {
@@ -64,11 +64,19 @@ public class RangeProofModule: Module {
       
       AsyncFunction("genBatchRangeProof") { (
           v: [UInt64],
-          rs: [Data],
+          rsBytes: Data,
           valBase: Data,
           randBase: Data,
           numBits: Int16
       ) in
+          
+        print(rsBytes)
+        // rsBytes is a Data of 32 * v.count length
+        // decode it to [Data] with 32 bytes each element
+        let rs = stride(from: 0, to: rsBytes.count, by: 32).map {
+            Data(rsBytes[$0..<min($0 + 32, rsBytes.count)])
+        }
+          
         let result = try batchRangeProof(
           v: v,
           rs: rs,
@@ -83,18 +91,27 @@ public class RangeProofModule: Module {
         let proof = result.proof()
         print("Proof length: \(proof.count), Data: \(proof)")
 
+          var commsArray: [[UInt64]] = []
+          for comm in comms {
+              commsArray.append(comm.map { UInt64($0) })
+          }
+
         let rangeProofResult = BatchRangeProofResult(
             proof: Array(proof),
-            commitments: comms
+            commitments: commsArray
         )
 
         let resultData = try JSONEncoder().encode(rangeProofResult)
-        print("Encoded Result: \(String(data: resultData, encoding: .utf8)!)")
+        print("Encoded Result: \(resultData)")
 
         return resultData
       }
 
-        AsyncFunction("verifyBatchRangeProof") { (proof: Data, comms: [Data], valBase: Data, randBase: Data, numBits: Int16) in
+        AsyncFunction("verifyBatchRangeProof") { (proof: Data, commsBytes: Data, valBase: Data, randBase: Data, numBits: Int16) in
+        let comms = stride(from: 0, to: commsBytes.count, by: 32).map {
+            Data(commsBytes[$0..<min($0 + 32, commsBytes.count)])
+        }
+            
         return try batchVerifyProof(
           proof: proof,
           comm: comms,

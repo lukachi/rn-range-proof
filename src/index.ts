@@ -56,9 +56,12 @@ export async function genBatchRangeProof(opts: {
   proof: Uint8Array;
   commitments: Uint8Array[];
 }> {
+  if (opts.rs.length !== opts.vs.length)
+    throw new TypeError("rs and vs must be of the same length");
+
   const result = await RangeProofModule.genBatchRangeProof(
-    opts.vs.map((v) => +v.toString()),
-    opts.rs.map((r) => new Uint8Array(r)),
+    opts.vs.map((el) => +el.toString()),
+    new Uint8Array(opts.rs.map((el) => Array.from(el)).flat()),
     new Uint8Array(opts.valBase),
     new Uint8Array(opts.randBase),
     opts.bits,
@@ -83,7 +86,7 @@ export async function verifyBatchRangeProof(opts: {
 }): Promise<boolean> {
   return await RangeProofModule.verifyBatchRangeProof(
     new Uint8Array(opts.proof),
-    opts.comms.map((el) => new Uint8Array(el)),
+    new Uint8Array(opts.comms.map((el) => Array.from(el)).flat()),
     new Uint8Array(opts.valBase),
     new Uint8Array(opts.randBase),
     opts.numBits,

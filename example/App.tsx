@@ -79,19 +79,21 @@ const verify = async (proof: Uint8Array[], commitments: Uint8Array[]) => {
     ),
   );
 
-  console.log("results", results);
-
   return results.every((isValid) => isValid);
 };
 
 const generateBatch = async () => {
-  return await genBatchRangeProof({
-    vs: TEST_DATA.amountChunks,
-    rs: TEST_DATA.rs,
-    valBase: TEST_DATA.valBase,
-    randBase: TEST_DATA.rand_base,
-    bits: 16,
-  });
+  try {
+    return await genBatchRangeProof({
+      vs: TEST_DATA.amountChunks,
+      rs: TEST_DATA.rs,
+      valBase: TEST_DATA.valBase,
+      randBase: TEST_DATA.rand_base,
+      bits: 16,
+    });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 const verifyBatch = async (proof: Uint8Array, commitments: Uint8Array[]) => {
@@ -145,8 +147,8 @@ export default function App() {
         onPress={async () => {
           const generated = await generateBatch();
           console.log(generated);
-          setBatchProof(generated.proof);
-          setBatchCommitments(generated.commitments);
+          setBatchProof(generated?.proof);
+          setBatchCommitments(generated?.commitments);
         }}
       />
       <Button
@@ -154,7 +156,7 @@ export default function App() {
         onPress={async () => {
           console.log(await verifyBatch(batchProof!, batchCommitments!));
         }}
-        disabled={!proof?.length}
+        disabled={!batchProof?.length}
       />
     </SafeAreaView>
   );
