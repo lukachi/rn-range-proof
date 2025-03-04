@@ -69,8 +69,6 @@ public class RangeProofModule: Module {
           randBase: Data,
           numBits: Int16
       ) in
-          
-        print(rsBytes)
         // rsBytes is a Data of 32 * v.count length
         // decode it to [Data] with 32 bytes each element
         let rs = stride(from: 0, to: rsBytes.count, by: 32).map {
